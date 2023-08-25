@@ -1,8 +1,3 @@
-extern crate redis;
-use redis::Commands;
-
-use std::sync::Arc;
-
 use axum::{
     routing::{get, post},
     Router,
@@ -21,5 +16,4 @@ pub fn create_router() -> Router {
         .route("/api/get_player_score", get(get_player_score))
         .route("/api/get_top_scores", get(get_top_scores))
         .route("/api/update_player_score", post(update_player_score))
-        // .with_state(app_state)
 }

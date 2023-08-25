@@ -1,5 +1,6 @@
 # Game Leaderboard
 Written using Rust just because
+Using Axum framework and Redis
 
 Using https://systemdesign.one/leaderboard-system-design/ as a reference for requirements and system design
 Would like to include an absolute leaderboard and relative leaderboards
@@ -36,6 +37,7 @@ Running everything locally for now including DBs so some of these things may hav
 
 ## Rust build commands
 Because I can't remember anything
+
 `
 $ cargo build
 $ ./target/debug/hello_world
@@ -43,3 +45,16 @@ or
 $ cargo run
 `
 
+## Redis cli commands
+`
+$ docker exec -it some-redis bash
+root@72c388dc2cb8:/data# redis-cli
+`
+
+From dockerhub terminal just run
+`
+redis-cli
+`
+## API CURL Commands
+`
+curl http://localhost:8000/api/get_player_score?player=player2&leaderboard=board1
