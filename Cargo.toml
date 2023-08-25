@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 axum = "0.6.20"
 dotenv = "0.15.0"
+json = "0.12.4"
 redis = { version = "0.23.2", features = ["tokio-comp"] }
 serde = "1.0.186"
 serde_json = "1.0.105"

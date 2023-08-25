@@ -8,7 +8,11 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use json;
 use serde_json::json;
+
+
+const REDIS_HOST: &str = "redis://127.0.0.1:6379/";
 
 
 pub async fn health_checker_handler() -> impl IntoResponse {
@@ -26,11 +30,12 @@ pub async fn health_checker_handler() -> impl IntoResponse {
 TODO: Single container for now. Probably want to use a cluster in the future
  */
 pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+    // Get the player score from redis
 
     let leaderboard: String = params.get("leaderboard").unwrap().to_string();
     let player: String = params.get("player").unwrap().to_string();
 
-    let client_result = redis::Client::open("redis://127.0.0.1:6379/");
+    let client_result = redis::Client::open(REDIS_HOST);
     let client = match client_result {
         Ok(c) => c,
         Err(error) => panic!("Problem connecting to Redis: {:?}", error),
@@ -46,7 +51,7 @@ pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> 
         .arg(leaderboard)
         .arg(player)
         .query::<Vec<String>>(&mut conn)
-        .expect("failed to execute ZRANGE");
+        .expect("failed to execute ZSCORE");
 
 
     let json_response = serde_json::json!({
@@ -69,26 +74,44 @@ pub async fn update_player_score() -> impl IntoResponse {
 }
 
 
-pub async fn get_top_scores() -> impl IntoResponse {
-    const MESSAGE: &str = "Get Score";
+pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+    // Get top player scores
+   
+    let leaderboard: String = params.get("leaderboard").unwrap().to_string();
+    let num_scores: String = params.get("num_scores").unwrap().to_string();
+
+    let client_result = redis::Client::open(REDIS_HOST);
+    let client = match client_result {
+        Ok(c) => c,
+        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+    };
+
+    let mut conn_result = client.get_connection(); 
+    let mut conn = match conn_result {
+        Ok(c) => c,
+        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+    };
+
+    // zrange board1 0 num_scores rev
+    let query_result: Vec<String> = redis::cmd("ZRANGE")
+        .arg(leaderboard)
+        .arg("0")
+        .arg(num_scores)
+        .arg("REV")
+        .arg("WITHSCORES")
+        .query::<Vec<String>>(&mut conn)
+        .expect("failed to execute ZRANGE");
+
+    let mut scores = json::JsonValue::new_object();
+
+    // let n = num_scores.parse::<i32>().unwrap();
+    // for i in (0..n-1).step_by(2) {
+    //     scores[query_result[i]] = query_result[i+1].into();
+    // }   
 
     let json_response = serde_json::json!({
         "status": "success",
-        "message": MESSAGE
+        "message": query_result,
     });
-
-    Json(json_response)
-}
-
-
-
-pub async fn create_leaderboard() -> impl IntoResponse {
-    const MESSAGE: &str = "Get Score";
-
-    let json_response = serde_json::json!({
-        "status": "success",
-        "message": MESSAGE
-    });
-
     Json(json_response)
 }

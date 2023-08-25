@@ -1,11 +1,11 @@
 # Game Leaderboard
-Written using Rust just because
-Using Axum framework and Redis
+Written using Rust just because  
+Using Axum framework and Redis  
 
-Using https://systemdesign.one/leaderboard-system-design/ as a reference for requirements and system design
-Would like to include an absolute leaderboard and relative leaderboards
+Using https://systemdesign.one/leaderboard-system-design/ as a reference for requirements and system design  
+Would like to include an absolute leaderboard and relative leaderboards  
 
-Using https://github.com/wpcodevo/rust-axum-mysql/tree/master as a reference for Rust API design
+Using https://github.com/wpcodevo/rust-axum-mysql/tree/master as a reference for Rust API design  
 
 ## Questions
 1. What are the primary use cases of the system? Update the score and display the leaderboard
@@ -39,22 +39,27 @@ Running everything locally for now including DBs so some of these things may hav
 Because I can't remember anything
 
 `
-$ cargo build
-$ ./target/debug/hello_world
-or
-$ cargo run
+$ cargo build  
+$ ./target/debug/hello_world  
+or  
+$ cargo run  
 `
 
-## Redis cli commands
+## Redis cli commands  
+`  
+$ docker exec -it some-redis bash  
+root@72c388dc2cb8:/data# redis-cli  
 `
-$ docker exec -it some-redis bash
-root@72c388dc2cb8:/data# redis-cli
+  
+From dockerhub terminal just run  
 `
-
-From dockerhub terminal just run
-`
-redis-cli
+redis-cli  
 `
 ## API CURL Commands
 `
-curl http://localhost:8000/api/get_player_score?player=player2&leaderboard=board1
+docker run -p 127.0.0.1:6379:6379 redis  
+
+curl http://localhost:8000/api/get_player_score?player=player2&leaderboard=board1  
+
+curl http://localhost:8000/api/get_player_score?leaderboard=board1&num_scores=5  
+'
