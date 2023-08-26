@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::collections::HashMap;
 use redis::{ RedisError, FromRedisValue, RedisResult};
 use axum::{
@@ -7,7 +6,6 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-// use serde_json::json;
 use serde::Deserialize;
 
 const REDIS_HOST: &str = "redis://127.0.0.1:6379/";
@@ -80,15 +78,9 @@ pub struct PlayerScore {
 }
 
 pub async fn update_player_score(Json(payload): Json<PlayerScore>,) -> (StatusCode, Json<serde_json::Value>) {
-// pub async fn update_player_score(Query(axum::extract::Json(payload)): Query<axum::extract::Json<PlayerScore>>) -> impl IntoResponse {
-//     // pub async fn update_player_score() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let leaderboard: String = payload.leaderboard;
     let score: String = payload.score;
     let player: String = payload.player;
-
-    // let leaderboard: String = String::from("board1");
-    // let score: String = String::from("5");
-    // let player: String = String::from("player1");
 
     let client_result = redis::Client::open(REDIS_HOST);
     let client = match client_result {
@@ -146,11 +138,6 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
         .expect("failed to execute ZRANGE");
 
     let mut scores = json::JsonValue::new_object();
-
-    // let n = num_scores.parse::<i32>().unwrap();
-    // for i in (0..n-1).step_by(2) {
-    //     scores[query_result[i]] = query_result[i+1].into();
-    // }   
 
     let json_response = serde_json::json!({
         "status": "success",
