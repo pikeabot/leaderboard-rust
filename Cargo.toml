@@ -10,7 +10,7 @@ axum = "0.6.20"
 dotenv = "0.15.0"
 json = "0.12.4"
 redis = { version = "0.23.2", features = ["tokio-comp"] }
-serde = "1.0.186"
+serde = { version = "1.0.186", features = ["derive"] }
 serde_json = "1.0.105"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tower-http = { version = "0.4.3", features = ["cors"] }

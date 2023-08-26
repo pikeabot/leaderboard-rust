@@ -44,22 +44,3 @@ $ ./target/debug/hello_world
 or  
 $ cargo run  
 `
-
-## Redis cli commands  
-`  
-$ docker exec -it some-redis bash  
-root@72c388dc2cb8:/data# redis-cli  
-`
-  
-From dockerhub terminal just run  
-`
-redis-cli  
-`
-## API CURL Commands
-`
-docker run -p 127.0.0.1:6379:6379 redis  
-
-curl http://localhost:8000/api/get_player_score?player=player2&leaderboard=board1  
-
-curl http://localhost:8000/api/get_player_score?leaderboard=board1&num_scores=5  
-'

@@ -1,16 +1,14 @@
 use std::sync::Arc;
 use std::collections::HashMap;
 use redis::{ RedisError, FromRedisValue, RedisResult};
-use redis::Commands;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
-use json;
-use serde_json::json;
-
+// use serde_json::json;
+use serde::Deserialize;
 
 const REDIS_HOST: &str = "redis://127.0.0.1:6379/";
 
@@ -25,6 +23,18 @@ pub async fn health_checker_handler() -> impl IntoResponse {
 
     Json(json_response)
 }
+
+pub async fn create_leaderboard() -> impl IntoResponse {
+    const MESSAGE: &str = "create_leaderboard";
+
+    let json_response = serde_json::json!({
+        "status": "success",
+        "message": MESSAGE
+    });
+
+    Json(json_response)
+}
+
 
 /*
 TODO: Single container for now. Probably want to use a cluster in the future
@@ -62,17 +72,50 @@ pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> 
 }
 
 
-pub async fn update_player_score() -> impl IntoResponse {
-    const MESSAGE: &str = "Get Score";
+#[derive(Deserialize)]
+pub struct PlayerScore {
+    leaderboard: String,
+    player: String,
+    score: String,
+}
+
+pub async fn update_player_score(Json(payload): Json<PlayerScore>,) -> (StatusCode, Json<serde_json::Value>) {
+// pub async fn update_player_score(Query(axum::extract::Json(payload)): Query<axum::extract::Json<PlayerScore>>) -> impl IntoResponse {
+//     // pub async fn update_player_score() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let leaderboard: String = payload.leaderboard;
+    let score: String = payload.score;
+    let player: String = payload.player;
+
+    // let leaderboard: String = String::from("board1");
+    // let score: String = String::from("5");
+    // let player: String = String::from("player1");
+
+    let client_result = redis::Client::open(REDIS_HOST);
+    let client = match client_result {
+        Ok(c) => c,
+        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+    };
+
+    let mut conn_result = client.get_connection(); 
+    let mut conn = match conn_result {
+        Ok(c) => c,
+        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+    };
+
+    let query_result: i32= redis::cmd("ZADD")
+        .arg(&leaderboard)
+        .arg(&score)
+        .arg(&player)
+        .query(&mut conn)
+        .expect("failed to execute ZADD");
+
 
     let json_response = serde_json::json!({
         "status": "success",
-        "message": MESSAGE
+        "message": format!("Updated score to {} for {}", score, player),							
     });
-
-    Json(json_response)
+    (StatusCode::OK, Json(json_response))
 }
-
 
 pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
     // Get top player scores
@@ -93,7 +136,7 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
     };
 
     // zrange board1 0 num_scores rev
-    let query_result: Vec<String> = redis::cmd("ZRANGE")
+    redis::cmd("ZRANGE")
         .arg(leaderboard)
         .arg("0")
         .arg(num_scores)
@@ -111,7 +154,7 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
 
     let json_response = serde_json::json!({
         "status": "success",
-        "message": query_result,
+        "message": "score updated",
     });
     Json(json_response)
 }
