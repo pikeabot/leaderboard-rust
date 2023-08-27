@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use redis::{ RedisError, FromRedisValue, RedisResult};
+use redis::Commands;
+use redis::cluster::ClusterClient;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -11,7 +13,9 @@ use leaderboard_rust::*;
 use chrono::{NaiveDate, NaiveDateTime};
 
 const REDIS_HOST: &str = "redis://127.0.0.1:6379/";
-
+const NODE1: &str = "redis://127.0.0.1:6379/";
+const NODE2: &str = "redis://127.0.0.1:6378/";
+const NODE3: &str = "redis://127.0.0.1:6377/";
 
 pub async fn health_checker_handler() -> impl IntoResponse {
     const MESSAGE: &str = "I am healthy";
@@ -62,16 +66,17 @@ pub async fn create_leaderboard(Json(payload): Json<LeaderboardInfo>,)-> (Status
 /*
 TODO: Single container for now. Probably want to use a cluster in the future
  */
-pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
+pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> (StatusCode, Json<serde_json::Value>) {
     // Get the player score from redis
 
     let leaderboard: String = params.get("leaderboard").unwrap().to_string();
     let player: String = params.get("player").unwrap().to_string();
 
-    let client_result = redis::Client::open(REDIS_HOST);
+    let nodes = vec![NODE1, NODE2, NODE3];
+    let client_result = ClusterClient::new(nodes);
     let client = match client_result {
         Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+        Err(error) => panic!("Problem creating Redis client: {:?}", error),
     };
 
     let mut conn_result = client.get_connection(); 
@@ -80,18 +85,23 @@ pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> 
         Err(error) => panic!("Problem connecting to Redis: {:?}", error),
     };
 
-    let query_result: Vec<String> = redis::cmd("ZSCORE")
-        .arg(leaderboard)
-        .arg(player)
-        .query::<Vec<String>>(&mut conn)
-        .expect("failed to execute ZSCORE");
+    let query_result: Vec<String> = conn.zscore(leaderboard, player).unwrap();
 
+    let mut status = String::new();
+    let mut score = String::new();
 
+    if query_result.is_empty() {
+        status = "fail".to_string();
+        score = "Player not found".to_string();
+    } else {
+        status = "success".to_string();
+        score = query_result[0].to_string();
+    }
     let json_response = serde_json::json!({
-        "status": "success",
-        "message": query_result[0],
+        "status": status,
+        "message": score,
     });
-    Json(json_response)
+    (StatusCode::OK, Json(json_response))
 }
 
 
@@ -100,10 +110,11 @@ pub async fn update_player_score(Json(payload): Json<PlayerScore>,) -> (StatusCo
     let score: String = payload.score;
     let player: String = payload.player;
 
-    let client_result = redis::Client::open(REDIS_HOST);
+    let nodes = vec![NODE1, NODE2, NODE3];
+    let client_result = ClusterClient::new(nodes);
     let client = match client_result {
         Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+        Err(error) => panic!("Problem creating Redis client: {:?}", error),
     };
 
     let mut conn_result = client.get_connection(); 
@@ -133,10 +144,11 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
     let leaderboard: String = params.get("leaderboard").unwrap().to_string();
     let num_scores: String = params.get("num_scores").unwrap().to_string();
 
-    let client_result = redis::Client::open(REDIS_HOST);
+    let nodes = vec![NODE1, NODE2, NODE3];
+    let client_result = ClusterClient::new(nodes);
     let client = match client_result {
         Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+        Err(error) => panic!("Problem creating Redis Client: {:?}", error),
     };
 
     let mut conn_result = client.get_connection(); 
@@ -146,7 +158,7 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
     };
 
     // zrange board1 0 num_scores rev
-    redis::cmd("ZRANGE")
+    let query_result = redis::cmd("ZRANGE")
         .arg(leaderboard)
         .arg("0")
         .arg(num_scores)
@@ -155,11 +167,9 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
         .query::<Vec<String>>(&mut conn)
         .expect("failed to execute ZRANGE");
 
-    let mut scores = json::JsonValue::new_object();
-
     let json_response = serde_json::json!({
         "status": "success",
-        "message": "score updated",
+        "message": query_result,
     });
     Json(json_response)
 }
