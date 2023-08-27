@@ -4,7 +4,11 @@ use axum::{
 };
 
 use crate::handler::{
-        health_checker_handler, get_player_score, get_top_scores, update_player_score
+        health_checker_handler, 
+        get_player_score, 
+        get_top_scores, 
+        update_player_score, 
+        create_leaderboard
     };
 
 /*
@@ -16,4 +20,5 @@ pub fn create_router() -> Router {
         .route("/api/get_player_score", get(get_player_score))
         .route("/api/get_top_scores", get(get_top_scores))
         .route("/api/update_player_score", post(update_player_score))
+        .route("/api/create_leaderboard", post(create_leaderboard))
 }

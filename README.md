@@ -1,6 +1,6 @@
 # Game Leaderboard
 Written using Rust just because  
-Using Axum framework and Redis  
+Using Axum framework Redis and PostgreSQL
 
 Using https://systemdesign.one/leaderboard-system-design/ as a reference for requirements and system design  
 Would like to include an absolute leaderboard and relative leaderboards  

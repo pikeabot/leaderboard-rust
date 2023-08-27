@@ -7,6 +7,8 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
+use leaderboard_rust::*;
+use chrono::{NaiveDate, NaiveDateTime};
 
 const REDIS_HOST: &str = "redis://127.0.0.1:6379/";
 
@@ -21,16 +23,39 @@ pub async fn health_checker_handler() -> impl IntoResponse {
 
     Json(json_response)
 }
+#[derive(Deserialize)]
+pub struct LeaderboardInfo {
+    leaderboard_name: String,
+    start_date: String,
+    end_date: String,
+}
 
-pub async fn create_leaderboard() -> impl IntoResponse {
-    const MESSAGE: &str = "create_leaderboard";
+#[derive(Deserialize)]
+pub struct PlayerScore {
+    leaderboard: String,
+    player: String,
+    score: String,
+}
+
+pub async fn create_leaderboard(Json(payload): Json<LeaderboardInfo>,)-> (StatusCode, Json<serde_json::Value>) {
+/// Save the leaderboard name to PostgreSQL
+
+    let leaderboard_name: &str = payload.leaderboard_name.as_str();
+    let start_date: String = payload.start_date; //"2015-09-05 23:56:04"
+    let end_date: String = payload.end_date;
+
+    let start: NaiveDateTime = NaiveDateTime::parse_from_str(&start_date, "%Y-%m-%d %H:%M:%S").unwrap();
+    let end: NaiveDateTime = NaiveDateTime::parse_from_str(&end_date, "%Y-%m-%d %H:%M:%S").unwrap();
+
+    let connection = &mut establish_connection();
+
+    let new_leaderboard = create_new_leaderboard(connection, leaderboard_name, &start, &end);
 
     let json_response = serde_json::json!({
         "status": "success",
-        "message": MESSAGE
+        "message": format!("Leaderboard {} created", leaderboard_name)
     });
-
-    Json(json_response)
+    (StatusCode::OK, Json(json_response))
 }
 
 
@@ -69,13 +94,6 @@ pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> 
     Json(json_response)
 }
 
-
-#[derive(Deserialize)]
-pub struct PlayerScore {
-    leaderboard: String,
-    player: String,
-    score: String,
-}
 
 pub async fn update_player_score(Json(payload): Json<PlayerScore>,) -> (StatusCode, Json<serde_json::Value>) {
     let leaderboard: String = payload.leaderboard;
