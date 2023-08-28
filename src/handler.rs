@@ -12,7 +12,7 @@ use serde::Deserialize;
 use leaderboard_rust::*;
 use chrono::{NaiveDate, NaiveDateTime};
 
-const REDIS_HOST: &str = "redis://127.0.0.1:6379/";
+
 const NODE1: &str = "redis://127.0.0.1:6379/";
 const NODE2: &str = "redis://127.0.0.1:6378/";
 const NODE3: &str = "redis://127.0.0.1:6377/";
@@ -51,9 +51,7 @@ pub async fn create_leaderboard(Json(payload): Json<LeaderboardInfo>,)-> (Status
     let start: NaiveDateTime = NaiveDateTime::parse_from_str(&start_date, "%Y-%m-%d %H:%M:%S").unwrap();
     let end: NaiveDateTime = NaiveDateTime::parse_from_str(&end_date, "%Y-%m-%d %H:%M:%S").unwrap();
 
-    let connection = &mut establish_connection();
-
-    let new_leaderboard = create_new_leaderboard(connection, leaderboard_name, &start, &end);
+    let new_leaderboard = create_new_leaderboard(leaderboard_name, &start, &end);
 
     let json_response = serde_json::json!({
         "status": "success",
@@ -144,32 +142,16 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
     let leaderboard: String = params.get("leaderboard").unwrap().to_string();
     let num_scores: String = params.get("num_scores").unwrap().to_string();
 
-    let nodes = vec![NODE1, NODE2, NODE3];
-    let client_result = ClusterClient::new(nodes);
-    let client = match client_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem creating Redis Client: {:?}", error),
-    };
-
-    let mut conn_result = client.get_connection(); 
-    let mut conn = match conn_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
-    };
-
-    // zrange board1 0 num_scores rev
-    let query_result = redis::cmd("ZRANGE")
-        .arg(leaderboard)
-        .arg("0")
-        .arg(num_scores)
-        .arg("REV")
-        .arg("WITHSCORES")
-        .query::<Vec<String>>(&mut conn)
-        .expect("failed to execute ZRANGE");
-
+    let mapped_query = get_leaderboard_top_scores(&leaderboard, &num_scores);
+        
     let json_response = serde_json::json!({
         "status": "success",
-        "message": query_result,
+        "message": mapped_query,
     });
     Json(json_response)
+}
+
+pub async fn update_leaderboard() -> Result<Json<serde_json::Value>, String>{
+    let result = update_leaderboard_top_scores();
+    Ok(result)
 }

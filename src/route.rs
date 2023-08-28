@@ -8,7 +8,8 @@ use crate::handler::{
         get_player_score, 
         get_top_scores, 
         update_player_score, 
-        create_leaderboard
+        create_leaderboard,
+        update_leaderboard
     };
 
 /*
@@ -21,4 +22,5 @@ pub fn create_router() -> Router {
         .route("/api/get_top_scores", get(get_top_scores))
         .route("/api/update_player_score", post(update_player_score))
         .route("/api/create_leaderboard", post(create_leaderboard))
+        .route("/api/update_leaderboard", get(update_leaderboard))
 }
