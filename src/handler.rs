@@ -11,16 +11,6 @@ use leaderboard_rust::*;
 use chrono::NaiveDateTime;
 
 
-pub async fn health_checker_handler() -> impl IntoResponse {
-    const MESSAGE: &str = "I am healthy";
-
-    let json_response = serde_json::json!({
-        "status": "success",
-        "message": MESSAGE
-    });
-
-    Json(json_response)
-}
 #[derive(Deserialize)]
 pub struct LeaderboardInfo {
     leaderboard_name: String,
@@ -33,6 +23,17 @@ pub struct PlayerScore {
     leaderboard: String,
     player: String,
     score: String,
+}
+
+pub async fn health_checker_handler() -> impl IntoResponse {
+    const MESSAGE: &str = "I am healthy";
+
+    let json_response = serde_json::json!({
+        "status": "success",
+        "message": MESSAGE
+    });
+
+    Json(json_response)
 }
 
 pub async fn create_leaderboard(Json(payload): Json<LeaderboardInfo>,)-> (StatusCode, Json<serde_json::Value>) {
@@ -55,9 +56,6 @@ pub async fn create_leaderboard(Json(payload): Json<LeaderboardInfo>,)-> (Status
 }
 
 
-/*
-TODO: Single container for now. Probably want to use a cluster in the future
- */
 pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> (StatusCode, Json<serde_json::Value>) {
     // Get the player score from redis
 
