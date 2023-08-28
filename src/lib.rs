@@ -8,7 +8,7 @@ use diesel::prelude::*;
 use dotenvy::dotenv;
 use redis::{ RedisError, FromRedisValue, RedisResult};
 use redis::Commands;
-use redis::cluster::ClusterClient;
+use redis::cluster::{ClusterClient, ClusterConnection};
 use serde::Deserialize;
 use serde_json;
 use std::collections::HashMap;
@@ -29,6 +29,22 @@ pub fn establish_connection() -> PgConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
+pub fn get_redis_connection() -> ClusterConnection{
+    let nodes = vec![NODE1, NODE2, NODE3];
+    let client_result = ClusterClient::new(nodes);
+    let client = match client_result {
+        Ok(c) => c,
+        Err(error) => panic!("Problem creating Redis client: {:?}", error),
+    };
+
+    let mut conn_result = client.get_connection(); 
+    let mut conn = match conn_result {
+        Ok(c) => c,
+        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
+    };
+
+    conn
+}
 
 pub fn create_new_leaderboard(name: &str, start_date: &NaiveDateTime, end_date: &NaiveDateTime) -> Leaderboard {
     use crate::schema::leaderboard;
@@ -78,18 +94,7 @@ pub fn get_leaderboard_top_scores(lboard: &str, nscores: &str) -> HashMap<String
     let leaderboard = lboard.to_string();
     let num_scores = nscores.to_string();
 
-    let nodes = vec![NODE1, NODE2, NODE3];
-    let client_result = ClusterClient::new(nodes);
-    let client = match client_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem creating Redis Client: {:?}", error),
-    };
-
-    let mut conn_result = client.get_connection(); 
-    let mut conn = match conn_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
-    };
+    let mut conn = get_redis_connection();
 
     // zrange board1 0 num_scores rev
     let query_result = redis::cmd("ZRANGE")
@@ -114,19 +119,7 @@ fn update_redis_leaderboards(leaderboard: &str, score_hashmap: &HashMap<String, 
     let mapped_query_string = serde_json::to_string(score_hashmap).unwrap();
     let leaderboard_top = format!("{}_top", leaderboard.to_string());
 
-    let nodes = vec![NODE1, NODE2, NODE3];
-    let client_result = ClusterClient::new(nodes);
-    let client = match client_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem creating Redis client: {:?}", error),
-    };
-
-    let mut conn_result = client.get_connection(); 
-    let mut conn = match conn_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
-    };
-
+    let mut conn = get_redis_connection();
     let _: () = conn.set(leaderboard_top, mapped_query_string).unwrap();
 
     let json_response = serde_json::json!({

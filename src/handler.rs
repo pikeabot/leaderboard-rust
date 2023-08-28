@@ -70,19 +70,7 @@ pub async fn get_player_score(Query(params): Query<HashMap<String, String>>) -> 
     let leaderboard: String = params.get("leaderboard").unwrap().to_string();
     let player: String = params.get("player").unwrap().to_string();
 
-    let nodes = vec![NODE1, NODE2, NODE3];
-    let client_result = ClusterClient::new(nodes);
-    let client = match client_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem creating Redis client: {:?}", error),
-    };
-
-    let mut conn_result = client.get_connection(); 
-    let mut conn = match conn_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
-    };
-
+    let mut conn = get_redis_connection();
     let query_result: Vec<String> = conn.zscore(leaderboard, player).unwrap();
 
     let mut status = String::new();
@@ -108,18 +96,7 @@ pub async fn update_player_score(Json(payload): Json<PlayerScore>,) -> (StatusCo
     let score: String = payload.score;
     let player: String = payload.player;
 
-    let nodes = vec![NODE1, NODE2, NODE3];
-    let client_result = ClusterClient::new(nodes);
-    let client = match client_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem creating Redis client: {:?}", error),
-    };
-
-    let mut conn_result = client.get_connection(); 
-    let mut conn = match conn_result {
-        Ok(c) => c,
-        Err(error) => panic!("Problem connecting to Redis: {:?}", error),
-    };
+    let mut conn = get_redis_connection();
 
     let query_result: i32= redis::cmd("ZADD")
         .arg(&leaderboard)
