@@ -1,7 +1,5 @@
 use std::collections::HashMap;
-use redis::{ RedisError, FromRedisValue, RedisResult};
 use redis::Commands;
-use redis::cluster::ClusterClient;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -10,12 +8,8 @@ use axum::{
 };
 use serde::Deserialize;
 use leaderboard_rust::*;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::NaiveDateTime;
 
-
-const NODE1: &str = "redis://127.0.0.1:6379/";
-const NODE2: &str = "redis://127.0.0.1:6378/";
-const NODE3: &str = "redis://127.0.0.1:6377/";
 
 pub async fn health_checker_handler() -> impl IntoResponse {
     const MESSAGE: &str = "I am healthy";

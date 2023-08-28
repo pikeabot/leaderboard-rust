@@ -3,13 +3,11 @@ pub mod schema;
 
 use axum::Json;
 use diesel::dsl::now;
-use diesel::{pg::PgConnection};
+use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use dotenvy::dotenv;
-use redis::{ RedisError, FromRedisValue, RedisResult};
 use redis::Commands;
 use redis::cluster::{ClusterClient, ClusterConnection};
-use serde::Deserialize;
 use serde_json;
 use std::collections::HashMap;
 use std::env;
