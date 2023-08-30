@@ -58,34 +58,6 @@ pub fn create_new_leaderboard(name: &str, start_date: &NaiveDateTime, end_date: 
 }
 
 
-pub fn update_leaderboard_top_scores() -> Json<serde_json::Value>{
-    // Update the leaderboard scores in Redis
-    use self::schema::leaderboard::dsl::*;
-
-    // let leaderboard = "board1";
-    let num_scores = "5";
-
-    let conn = &mut establish_connection();
-
-    let results = leaderboard
-        .filter(start_date.lt(now) )
-        .filter(end_date.gt(now) )
-        .select(Leaderboard::as_select())
-        .load(conn)
-        .expect("Error loading posts");
-
-    for r in results {
-        let scores = get_leaderboard_top_scores(&r.name, num_scores);
-        let result = update_redis_leaderboards(&r.name, &scores);
-    }
-    let json_response = serde_json::json!({
-        "status": "success",
-        "message": "Finished updating leaderboards",							
-    });
-    Json(json_response)
-}
-
-
 pub fn get_leaderboard_top_scores(lboard: &str, nscores: &str) -> HashMap<String, String>{
     // get the top scores in the sorted set
     // this should probably be run periodically, i.e. every minute? not sure if that will enrage players
@@ -110,6 +82,35 @@ pub fn get_leaderboard_top_scores(lboard: &str, nscores: &str) -> HashMap<String
     mapped_query
 }
 
+
+pub fn update_leaderboard_top_scores() -> Json<serde_json::Value>{
+    // Update the leaderboard scores in Redis
+    use self::schema::leaderboard::dsl::*;
+
+    // let leaderboard = "board1";
+    let num_scores = "10";
+
+    let conn = &mut establish_connection();
+
+    let results = leaderboard
+        .filter(start_date.lt(now) )
+        .filter(end_date.gt(now) )
+        .select(Leaderboard::as_select())
+        .load(conn)
+        .expect("Error getting leaderboards");
+
+    for r in results {
+        let scores = get_leaderboard_top_scores(&r.name, num_scores);
+        let result = update_redis_leaderboards(&r.name, &scores);
+    }
+    let json_response = serde_json::json!({
+        "status": "success",
+        "message": "Finished updating leaderboards",							
+    });
+    Json(json_response)
+}
+
+
 fn update_redis_leaderboards(leaderboard: &str, score_hashmap: &HashMap<String, String>) -> Json<serde_json::Value>{
     // update the leaderboard top scores in redis
     // redis set {json of scores}
@@ -125,4 +126,31 @@ fn update_redis_leaderboards(leaderboard: &str, score_hashmap: &HashMap<String, 
         "message": format!("Updated top scores for {}", leaderboard),							
     });
     Json(json_response)
+}
+
+fn clean_redis_leaderboards() {
+    // delete sorted sets after event has expired
+    // Leaderboard final results are kept and should be updated before deletion
+    use self::schema::leaderboard::dsl::*;
+
+    let pgconn = &mut establish_connection();
+
+    let results = leaderboard
+        .filter(end_date.lt(now) )
+        .select(Leaderboard::as_select())
+        .load(pgconn)
+        .expect("Error getting leaderboards");
+
+    let mut rconn = get_redis_connection();
+    let num_scores = "10";
+    for r in results {
+        let query_result: i32 = rconn.exists(&r.name).unwrap();
+        if query_result == 1 {
+            let scores = get_leaderboard_top_scores(&r.name, num_scores);
+            let result = update_redis_leaderboards(&r.name, &scores);
+
+            let del_result: i32 = rconn.del(&r.name)
+            .expect(format!("Error deleting {}", &r.name).as_str());
+        }
+    }
 }
