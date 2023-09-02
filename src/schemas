@@ -1,0 +1,9 @@
+// simple leaderboard schema
+CREATE TABLE leaderboards (
+    id INTEGER,
+    max_players INTEGER DEFAULT 100,
+    name VARCHAR(100),
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
+    PRIMARY KEY (id)
+);

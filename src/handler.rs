@@ -121,6 +121,7 @@ pub async fn get_top_scores(Query(params): Query<HashMap<String, String>>) -> im
 }
 
 pub async fn update_leaderboard() -> Result<Json<serde_json::Value>, String>{
+    // for testing to trigger 
     let result = update_leaderboard_top_scores();
     Ok(result)
 }
