@@ -129,7 +129,7 @@ fn update_leaderboard(leaderboard: &str, score_hashmap: &HashMap<String, String>
     Json(json_response)
 }
 
-fn clean_redis_leaderboards() {
+fn batch_clean_leaderboards() {
     // delete sorted sets after event has expired
     // Leaderboard final results are kept and should be updated before deletion
     use self::schema::leaderboard::dsl::*;
@@ -148,7 +148,7 @@ fn clean_redis_leaderboards() {
         let query_result: i32 = rconn.exists(&r.name).unwrap();
         if query_result == 1 {
             let scores = get_leaderboard_top_scores(&r.name, num_scores);
-            let result = update_redis_leaderboards(&r.name, &scores);
+            let result = update_leaderboard(&r.name, &scores);
 
             let del_result: i32 = rconn.del(&r.name)
             .expect(format!("Error deleting {}", &r.name).as_str());
