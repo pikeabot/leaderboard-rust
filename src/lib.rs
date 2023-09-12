@@ -11,7 +11,7 @@ use redis::cluster::{ClusterClient, ClusterConnection};
 use serde_json;
 use std::collections::HashMap;
 use std::env;
-use self::models::{NewLeaderboard, Leaderboard};
+use crate::models::{NewLeaderboard, Leaderboard};
 use chrono::NaiveDateTime;
 
 
@@ -102,7 +102,7 @@ pub fn batch_update_leaderboards_top_scores() -> Json<serde_json::Value>{
 
     for r in results {
         let scores = get_leaderboard_top_scores(&r.name, num_scores);
-        let result = update_redis_leaderboards(&r.name, &scores);
+        let result = update_leaderboard(&r.name, &scores);
     }
     let json_response = serde_json::json!({
         "status": "success",
@@ -112,8 +112,8 @@ pub fn batch_update_leaderboards_top_scores() -> Json<serde_json::Value>{
 }
 
 
-fn update_redis_leaderboards(leaderboard: &str, score_hashmap: &HashMap<String, String>) -> Json<serde_json::Value>{
-    // update the leaderboard top scores in redis
+fn update_leaderboard(leaderboard: &str, score_hashmap: &HashMap<String, String>) -> Json<serde_json::Value>{
+    // update the top scores for a leaderboard
     // redis set {json of scores}
 
     let mapped_query_string = serde_json::to_string(score_hashmap).unwrap();

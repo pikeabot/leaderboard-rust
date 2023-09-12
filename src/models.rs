@@ -1,6 +1,5 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use crate::schema::leaderboard;
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::schema::leaderboard)]
