@@ -59,7 +59,7 @@ pub fn create_new_leaderboard(name: &str, start_date: &NaiveDateTime, end_date: 
 
 
 pub fn get_leaderboard_top_scores(lboard: &str, nscores: &str) -> HashMap<String, String>{
-    // get the top scores in the sorted set
+    // get the top scores in the sorted set for a given leaderboard
     // this should probably be run periodically, i.e. every minute? not sure if that will enrage players
     let leaderboard = lboard.to_string();
     let num_scores = nscores.to_string();
@@ -83,8 +83,9 @@ pub fn get_leaderboard_top_scores(lboard: &str, nscores: &str) -> HashMap<String
 }
 
 
-pub fn update_leaderboard_top_scores() -> Json<serde_json::Value>{
-    // Update the leaderboard scores in Redis
+pub fn batch_update_leaderboards_top_scores() -> Json<serde_json::Value>{
+    // Update the all of the leaderboard scores in Redis
+    // Run periodically
     use self::schema::leaderboard::dsl::*;
 
     // let leaderboard = "board1";
